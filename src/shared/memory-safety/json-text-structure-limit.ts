@@ -44,8 +44,10 @@ export function assertJsonTextStructureWithinLimits(
       // String contents carry no structure; jump to the closing quote rather than
       // stepping through every byte of a large payload.
       let cursor = index + 1
+      // Why: hoisted so an escape-dense body (a text file in an fs.writeFile frame) rescans the
+      // tail once per *skipped* quote rather than once per escape — the latter is quadratic.
+      let closing = content.indexOf('"', cursor)
       for (;;) {
-        const closing = content.indexOf('"', cursor)
         if (closing < 0) {
           return
         }
@@ -57,6 +59,9 @@ export function assertJsonTextStructureWithinLimits(
           break
         }
         cursor = nextEscape + 2
+        if (cursor > closing) {
+          closing = content.indexOf('"', cursor)
+        }
       }
       continue
     }
